@@ -4,6 +4,15 @@ from telethon.tl.patched import Message
 from datetime import datetime, timedelta
 import pandas as pd
 from typing import Generator
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s - %(asctime)s - %(message)s'
+)
+
+
 
 #####################
 # Prepare Functions #
@@ -87,16 +96,16 @@ def generateDataFrame(client:TelegramClient, chat_id:int, message_limit:float, f
                         else:
                             allData[k].append(v)
                     msg_i += 1
-        return pd.DataFrame(allData)
+        return pd.DataFrame(allData), msg_i
 
 
 
 
 if __name__ == "__main__":
-
     ##########################
     # Parameter Sanitization #
     ##########################
+    logging.debug("Parsing & Fixing Config Datetimes...")
     if config.FROM_DATE: config.FROM_DATE -= timedelta(days=1)
     if config.TO_DATE: config.TO_DATE += timedelta(days=1)
 
@@ -105,10 +114,14 @@ if __name__ == "__main__":
     ###################
     # Start a session #
     ###################
+    logging.info("Initiating Connection With Telegram...")
     client = TelegramClient(config.SESSION_NAME, config.API_ID, config.API_HASH)
 
     ####################
     # Get & Save Excel #
     ####################
-    df = generateDataFrame(client, config.CHAT_ID, config.MESSAGE_LIMIT, config.FROM_DATE, config.TO_DATE)
+    logging.info("Fetching Data...")
+    df, msg_num = generateDataFrame(client, config.CHAT_ID, config.MESSAGE_LIMIT, config.FROM_DATE, config.TO_DATE)
+
+    logging.info(f"Extracting {msg_num} Messages To Excel: {config.EXCEL_FILE_NAME}")
     saveExcel(config.EXCEL_FILE_NAME, df, config.EXCEL_SHEET_NAME)
